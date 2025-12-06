@@ -1,10 +1,10 @@
 from flicker.gui.windows.mainwindow import MainWindow
-from flicker.gui.application import FlickerApplication
+from flicker.gui.application import FlickerApp
 
 import sys
 
 
-app = FlickerApplication(sys.argv)
+app = FlickerApp(sys.argv)
 
 window = MainWindow()
 window.show()

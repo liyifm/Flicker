@@ -3,6 +3,7 @@ from PySide6.QtCore import QObject, QByteArray, QBuffer, QIODevice, QThread, Sig
 from PySide6.QtGui import QPixmap, QImage
 
 from flicker.services.proactive.intent_parser.intent import IntentRegistry
+from flicker.utils.notification import NotificationManager
 from flicker.utils.image import ImageUtils
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -50,26 +51,26 @@ class IntentInstance(BaseModel):
 
 class IntentParsingResult(BaseModel):
     ok: bool
-    messsage: str = Field(default="")
-    result: List[IntentInstance] = Field(default_factory=list)
+    message: str = Field(default="")
+    intents: List[IntentInstance] = Field(default_factory=list)
 
 
 class IntentParserInstance(QObject):
 
     finished = Signal(IntentParsingResult)
 
-    def __init__(self) -> None:
+    def __init__(self, screenshot: QPixmap) -> None:
         super().__init__()
+        self.screenshot = screenshot
 
     def parse(self) -> IntentParsingResult:
-        logger.info("Starting intent parsing from screen...")
-        screen = QApplication.primaryScreen()
-        screenshot = screen.grabWindow().scaledToWidth(1200)
-        # screenshot.save(r"C:\Users\User\Pictures\Screenshots\test.webp", "webp")
-
         model_name = "google/gemini-2.5-flash-lite"
         api_key = environ.get("OPENROUTER_API_KEY", "")
         base_url = "https://openrouter.ai/api/v1"
+
+        if api_key == "":
+            NotificationManager.send_error_message("无法进行意图解析", "没有配置OpenRouter的API Key，请前往设置页面进行配置")
+            raise RuntimeError("OpenRouter API Key is not configured")
 
         intents = ""
         for intent in IntentRegistry.getInstance().getIntents():
@@ -79,7 +80,7 @@ class IntentParserInstance(QObject):
 
         client = OpenAI(api_key=api_key, base_url=base_url)
 
-        image_url = ImageUtils.pixmapToBase64(screenshot, "webp", 80)
+        image_url = ImageUtils.pixmapToBase64(self.screenshot, "webp", 80)
 
         resp = client.chat.completions.create(
             model=model_name,
@@ -119,7 +120,7 @@ class IntentParserInstance(QObject):
             parsedIntent = IntentInstance.model_validate(item)
             parsedIntents.append(parsedIntent)
 
-        return IntentParsingResult(ok=True, result=parsedIntents)
+        return IntentParsingResult(ok=True, intents=parsedIntents)
 
     def start(self) -> None:
         try:
@@ -128,7 +129,7 @@ class IntentParserInstance(QObject):
         except Exception as ex:
             logger.error(f'Intent parsing failed: {ex}')
             logger.info(traceback.format_exc())
-            result = IntentParsingResult(ok=False, messsage=str(ex))
+            result = IntentParsingResult(ok=False, message=str(ex))
             self.finished.emit(result)
 
 
@@ -145,12 +146,12 @@ class IntentParser:
         return cls.current_thread is not None
 
     @classmethod
-    def startParseScreen(cls, callback: Callable[[IntentParsingResult], None] | None = None) -> None:
+    def startParseScreen(cls, screenshot: QPixmap, callback: Callable[[IntentParsingResult], None] | None = None) -> None:
         if cls.current_thread is not None:
             raise RuntimeError("Another intent parsing task is still running")
 
         thread = QThread()
-        instance = IntentParserInstance()
+        instance = IntentParserInstance(screenshot)
 
         cls.current_thread = thread
         cls.current_instance = instance

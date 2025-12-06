@@ -5,8 +5,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QEvent
 from PySide6.QtGui import QKeyEvent, QColor
 
+from flicker.utils.window import WindowUtils
 from flicker.services.proactive.intent_parser import IntentParsingResult
 from flicker.gui.widgets.input import AIChatInput
+from flicker.gui.widgets.proactive.intents import IntentListView
 
 from typing import Optional
 
@@ -22,8 +24,7 @@ class HotkeyWindow(QMainWindow):
 
         window = cls._instance
         window.show()
-        window.activateWindow()
-        window.raise_()
+        WindowUtils.bringWindowToFront(window)
 
     @classmethod
     def setClsIntentParsingResult(cls, result: Optional[IntentParsingResult] = None) -> None:
@@ -40,7 +41,7 @@ class HotkeyWindow(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        self.widget_intents = QLabel("识别到的意图将会显示在这里")
+        self.widget_intents = IntentListView(self)
         self.widget_input = AIChatInput()
 
         self.setupUILayout()
@@ -95,4 +96,4 @@ class HotkeyWindow(QMainWindow):
         return super().keyPressEvent(event)
 
     def setIntentParsingResult(self, result: Optional[IntentParsingResult] = None) -> None:
-        self.widget_intents.setText("识别到的意图：\n" + str(result))
+        self.widget_intents.updateIntentList([] if result is None else result.intents)
