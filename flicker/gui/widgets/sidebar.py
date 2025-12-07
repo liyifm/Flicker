@@ -2,11 +2,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from flicker.utils.theme import getCurrentTheme
 
 
-current_theme = getCurrentTheme()
-
 SIDEBAR_STYLE = f"""
 QWidget {{
-    background-color: "{current_theme.sidebar_background_color}";
 }}
 """
 

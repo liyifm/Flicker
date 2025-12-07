@@ -13,7 +13,7 @@ from loguru import logger
 USER_MESSAGE_STYLE = """
 QFrame {
     background-color: #2BA245;
-    border-radius: 10px;
+    border-radius: 15px;
     color: white;
 }
 """
@@ -45,6 +45,10 @@ class TextPartView(QTextBrowser):
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
+        self.adjustHeight()
+
+    def wheelEvent(self, event):
+        super().wheelEvent(event)
         self.adjustHeight()
 
 

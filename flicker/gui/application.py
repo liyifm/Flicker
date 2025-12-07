@@ -7,6 +7,7 @@ from flicker.gui.states import GlobalState
 from flicker.gui.windows.mainwindow import MainWindow
 from flicker.gui.windows.hotkeywindow import HotkeyWindow
 from flicker.utils.hotkey_manager import HotkeyManager
+from flicker.utils.settings import Settings
 from flicker.services.proactive.intent_parser import IntentParser
 
 from typing import Optional
@@ -50,6 +51,7 @@ class FlickerApp(QApplication):
         self.setQuitOnLastWindowClosed(False)
 
         FlickerApp._instance = self
+        Settings.loadDefault()
 
     @classmethod
     def getInstance(cls) -> 'FlickerApp':
@@ -73,6 +75,7 @@ class FlickerApp(QApplication):
         self.__tray_icon.setIcon(flicker_icon)
         self.__tray_icon.setVisible(True)
         self.__tray_icon.setContextMenu(self.__tray_menu)
+        self.__tray_icon.setToolTip('Flicker | 一站式AI工作空间')
 
         self.__tray_menu.addAction("显示主界面", self.openMainWindow)
         self.__tray_menu.addSeparator()

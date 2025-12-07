@@ -1,6 +1,6 @@
 from PySide6.QtGui import QPixmap
 from pydantic import BaseModel, Field
-from typing import Literal, Union, Annotated, List, TYPE_CHECKING
+from typing import Literal, Union, Annotated, List, Optional
 
 from flicker.utils.image import ImageUtils
 
@@ -28,6 +28,11 @@ MessagePartUnion = Annotated[
     Union[TextPart, ImagePart],
     Field(discriminator='type')
 ]
+
+
+class SystemMessage(BaseModel):
+    role: Literal['system'] = 'system'
+    content: str
 
 
 class UserMessage(BaseModel):
@@ -80,6 +85,7 @@ ChatMessageUnion = Annotated[
 
 
 class ChatContext(BaseModel):
+    system_prompt: Optional[SystemMessage] = None
     messages: list[ChatMessageUnion] = Field(default_factory=list)
 
     def appendMessage(self, msg: ChatMessageUnion) -> None:

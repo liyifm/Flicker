@@ -19,6 +19,65 @@ from flicker.utils.window import WindowUtils
 from typing import Optional, Callable
 
 
+TABS_STYLE = """
+QTabWidget::pane {
+    background-color: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    margin-top: 8px;
+}
+
+QTabWidget::tab-bar {
+
+}
+
+QTabBar::tab {
+    background-color: #f0f0f0;
+    color: #666666;
+    border: none;
+    padding: 8px 20px;
+    margin-right: 5px;
+    margin-top: 10px;
+    border-radius: 12px;
+    min-width: 80px;
+}
+
+QTabBar::tab:selected {
+    background-color: #7B618B;
+    color: white;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #B1AABF;
+    color: #FEFEFE;
+}
+
+QTabBar::tab:!selected {
+
+}
+"""
+
+WINDOW_STYLE = """
+QMainWindow {
+    background-color: #EBE8EC;
+}
+"""
+
+SPLITTER_STYLE = """
+QSplitter::handle {
+    background-color: rgba(0, 0, 0, 0);  /* 完全透明 */
+    border: none;
+}
+QSplitter::handle:horizontal {
+    width: 3px;  /* 保留一些宽度便于拖拽 */
+}
+QSplitter::handle:vertical {
+    height: 3px;  /* 保留一些高度便于拖拽 */
+}
+"""
+
+
 class MainWindow(QMainWindow):
     """ Main window of tha application """
 
@@ -38,6 +97,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("AI 生产力工作空间")
         self.setMinimumSize(800, 500)
         self.setWindowIcon(QIcon(":/icons/flicker.png"))
+        self.setStyleSheet(WINDOW_STYLE)
         # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
 
         self.widget_tabs = QTabWidget()
@@ -51,9 +111,12 @@ class MainWindow(QMainWindow):
 
     def __setUpLayout(self):
         central_widget = QSplitter(Qt.Orientation.Horizontal)
+        central_widget.setStyleSheet(SPLITTER_STYLE)
         self.setCentralWidget(central_widget)
         central_widget.addWidget(self.widget_sidebar)
         central_widget.addWidget(self.widget_tabs)
+
+        self.widget_tabs.setStyleSheet(TABS_STYLE)
 
     def __setUpSignals(self):
         globalState = GlobalState.getInstance()

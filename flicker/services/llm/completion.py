@@ -4,6 +4,7 @@ from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel
 
+from flicker.utils.settings import ModelRef
 from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart
 
 from loguru import logger
@@ -12,23 +13,6 @@ from uuid import UUID, uuid4
 
 import os
 import traceback
-
-
-class ModelRef(BaseModel):
-    model_name: str
-    base_url: str
-    api_key: str
-
-    @classmethod
-    def fromOpenRouter(cls, model_name: str, api_key: Optional[str] = None) -> "ModelRef":
-        if api_key is None:
-            api_key = os.environ.get("OPENROUTER_API_KEY", "")
-            api_key = api_key.strip()
-
-        if api_key == "":
-            raise ValueError("OpenRouter API key not configured yet")
-
-        return ModelRef(model_name=model_name, api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
 
 ChatFinishReason = Literal['stop']
@@ -74,6 +58,8 @@ class ChatCompletionInstance(QObject):
         logger.info(f"completion instance {self.instance_id} started")
         client = OpenAI(api_key=self.model.api_key, base_url=self.model.base_url)
         messages = [msg.model_dump() for msg in self.ctx.messages]
+        if self.ctx.system_prompt is not None:
+            messages.insert(0, self.ctx.system_prompt.model_dump())
 
         try:
             stream_response = client.chat.completions.create(
@@ -82,6 +68,7 @@ class ChatCompletionInstance(QObject):
                 stream=True
             )
             for chunk in stream_response:
+                # logger.info(chunk)
                 self.chunkReceived.emit(StreamCompletionChunk.fromOpenAIChunk(chunk))  # type: ignore
         except Exception as e:
             logger.error(f'chat completion failed: {e}')
