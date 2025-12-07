@@ -9,6 +9,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QPixmap, QIcon, QFont
+
+from flicker.gui.pages.task import TaskPage
+from flicker.gui.states import GlobalState
+from flicker.gui.states.task import TaskState
 from flicker.gui.widgets.sidebar import Sidebar
 from flicker.gui.pages.base import FlickerPage
 from flicker.utils.window import WindowUtils
@@ -39,15 +43,21 @@ class MainWindow(QMainWindow):
         self.widget_tabs = QTabWidget()
         self.widget_sidebar = Sidebar()
 
-        self.__setupLayout()
+        self.__setUpLayout()
+        self.__setUpSignals()
+
         self.openHomePage()
         MainWindow._instance = self
 
-    def __setupLayout(self):
+    def __setUpLayout(self):
         central_widget = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(central_widget)
         central_widget.addWidget(self.widget_sidebar)
         central_widget.addWidget(self.widget_tabs)
+
+    def __setUpSignals(self):
+        globalState = GlobalState.getInstance()
+        globalState.task_manager_state.taskCreated.connect(self.openTaskPage)
 
     def openPage(self, page_id: str, page_generator: Callable[[], FlickerPage]) -> None:
         for i in range(self.widget_tabs.count()):
@@ -61,6 +71,11 @@ class MainWindow(QMainWindow):
 
         new_page = page_generator()
         self.widget_tabs.addTab(new_page, new_page.getPageName())
+        self.widget_tabs.setCurrentWidget(new_page)
+
+    def openTaskPage(self, task_state: TaskState) -> None:
+        task_page_id = f"#task-{task_state.task_id}"
+        self.openPage(task_page_id, lambda: TaskPage(task_state))
 
     def openHomePage(self) -> None:
         from flicker.gui.pages.home import HomePage

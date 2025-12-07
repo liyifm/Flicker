@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QIcon, QFont
 from loguru import logger
 
+from flicker.gui.states import GlobalState
 from flicker.gui.windows.mainwindow import MainWindow
 from flicker.gui.windows.hotkeywindow import HotkeyWindow
 from flicker.utils.hotkey_manager import HotkeyManager
@@ -28,6 +29,8 @@ class FlickerApp(QApplication):
     def __init__(self, args):
         super().__init__(args)
         prepare_qt_env()
+
+        self.state = GlobalState.getInstance()
 
         self.__tray_icon = QSystemTrayIcon(self)
         self.__tray_menu = QMenu()
