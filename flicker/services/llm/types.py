@@ -69,13 +69,21 @@ class AssistantMessage(BaseModel):
             if isinstance(part, TextPart):
                 self.appendTextPart(part)
             elif isinstance(part, ImagePart):
+                self.appendImagePart(part)
+            else:
                 raise NotImplementedError
+
+    def appendText(self, text: str) -> None:
+        self.appendTextPart(TextPart(text=text))
 
     def appendTextPart(self, part: 'TextPart') -> None:
         if len(self.content) > 0 and isinstance(self.content[-1], TextPart):
             self.content[-1].text += part.text
         else:
             self.content.append(part)
+
+    def appendImagePart(self, part: 'ImagePart') -> None:
+        self.content.append(part)
 
 
 ChatMessageUnion = Annotated[

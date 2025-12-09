@@ -1,11 +1,12 @@
-from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QFrame, QScrollArea, QWidget, QSizePolicy, QGraphicsDropShadowEffect
+from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QFrame, QScrollArea, QWidget, QSizePolicy, QGraphicsDropShadowEffect, QLabel
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QResizeEvent, QColor
 
+from flicker.utils.image import ImageUtils
 from flicker.gui.pages.base import FlickerPage
 from flicker.gui.states.task import TaskState
 from flicker.gui.widgets.input import AIChatInput
-from flicker.services.llm.types import ChatContext, UserMessage, AssistantMessage, ChatMessageUnion, TextPart
+from flicker.services.llm.types import ChatContext, UserMessage, AssistantMessage, ChatMessageUnion, TextPart, ImagePart
 
 from loguru import logger
 
@@ -52,6 +53,13 @@ class TextPartView(QTextBrowser):
         self.adjustHeight()
 
 
+class ImagePartView(QLabel):
+    def __init__(self, image_part: ImagePart) -> None:
+        super().__init__()
+        self.image_part = image_part
+        self.setPixmap(ImageUtils.base64ToPixmap(self.image_part.image_url.url))
+
+
 class ChatMessageView(QFrame):
 
     def __init__(self, message: ChatMessageUnion, parent=None):
@@ -59,7 +67,7 @@ class ChatMessageView(QFrame):
         self.message = message
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
-        self.widget_parts: list[TextPartView] = []
+        self.widget_parts: list[TextPartView | ImagePartView] = []
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -84,10 +92,15 @@ class ChatMessageView(QFrame):
                     widget_text = TextPartView(part)
                     self.widget_parts.append(widget_text)
                     self.main_layout.addWidget(widget_text)
+                elif isinstance(part, ImagePart):
+                    widget_image = ImagePartView(part)
+                    self.widget_parts.append(widget_image)
+                    self.main_layout.addWidget(widget_image)
                 else:
                     raise NotImplementedError
 
-        if len(self.widget_parts) > 0:
+        if len(self.widget_parts) > 0 and \
+                isinstance(self.widget_parts[-1], TextPartView):
             self.widget_parts[-1].reload()
 
         self.adjustHeight()

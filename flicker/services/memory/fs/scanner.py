@@ -63,12 +63,12 @@ class FileScannerInstance(QObject):
         logger.info(f'file scanning task takes {cost:.2f} seconds with {total_files} files')
 
         # todo: should be decoupled later
-        from flicker.services.llm.embedding import EmbeddingService
-        from flicker.utils.settings import Settings
-        EmbeddingService.startEmbedding(
-            Settings.loadDefault().default_embed_model,
-            [p.name for p in self.result.paths]
-        )
+        # from flicker.services.llm.embedding import EmbeddingService
+        # from flicker.utils.settings import Settings
+        # EmbeddingService.startEmbedding(
+        #     Settings.loadDefault().default_embed_model,
+        #     [p.name for p in self.result.paths]
+        # )
 
         self.scanningFinished.emit()
 

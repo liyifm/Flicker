@@ -5,7 +5,7 @@ from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel
 
 from flicker.utils.settings import ModelRef
-from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart
+from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart, ImagePart
 
 from loguru import logger
 from typing import Optional, Callable, Literal
@@ -15,7 +15,7 @@ import os
 import traceback
 
 
-ChatFinishReason = Literal['stop']
+ChatFinishReason = Literal['stop', 'content_filter']
 
 
 class StreamCompletionChunk(BaseModel):
@@ -24,7 +24,15 @@ class StreamCompletionChunk(BaseModel):
 
     @classmethod
     def parseAssistantMessage(cls, message: ChoiceDelta) -> AssistantMessage:
-        return AssistantMessage(content=[TextPart(text=message.content or '')])
+        parsed_message = AssistantMessage()
+        if message.content is not None:
+            parsed_message.appendText(message.content)
+        if hasattr(message, 'images'):
+            for img in message.images:
+                image_part = ImagePart.model_validate(img)
+                parsed_message.appendImagePart(image_part)
+
+        return parsed_message
 
     @classmethod
     def fromOpenAIChunk(cls, openai_chunk: ChatCompletionChunk) -> "StreamCompletionChunk":
@@ -33,6 +41,9 @@ class StreamCompletionChunk(BaseModel):
         chunk = StreamCompletionChunk(delta=delta)
         if choice.finish_reason == 'stop':
             chunk.finish_reason = 'stop'
+        elif choice.finish_reason == 'content_filter':
+            chunk.finish_reason = 'content_filter'
+            chunk.delta.appendText("\n**🚫生成内容因为内容审查被拒绝**")
         elif choice.finish_reason is not None:
             raise ValueError(f"unsupported finish reason {choice.finish_reason}")
 
