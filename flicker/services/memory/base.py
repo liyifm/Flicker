@@ -11,6 +11,16 @@ Layer 2. Relations (Knowledge Graphs)
 """
 
 
+class AbstractDataChunk(ABC):
+    @abstractmethod
+    def getChunkId(self) -> str:
+        ...
+
+    @abstractmethod
+    def getContent(self) -> str:
+        ...
+
+
 class AbstractDataSource(ABC):
     """ base class for all data sources """
 

@@ -1,3 +1,5 @@
+from flicker.services.memory.fs.storage import FSStorage
+
 from PySide6.QtCore import QThread, QObject, Signal
 from pydantic import BaseModel, Field
 from typing import Optional, Callable
@@ -30,6 +32,7 @@ class FileScannerInstance(QObject):
         self.options = options
         self.working_thread = QThread()
         self.result = FileScanningResult()
+        self.callback: Callable[[FileScanningResult], None] | None = None
 
     def start(self) -> None:
         logger.info(f'start file scanning: {self.options.root_directory}')
@@ -61,14 +64,7 @@ class FileScannerInstance(QObject):
 
         cost = time() - start
         logger.info(f'file scanning task takes {cost:.2f} seconds with {total_files} files')
-
-        # todo: should be decoupled later
-        # from flicker.services.llm.embedding import EmbeddingService
-        # from flicker.utils.settings import Settings
-        # EmbeddingService.startEmbedding(
-        #     Settings.loadDefault().default_embed_model,
-        #     [p.name for p in self.result.paths]
-        # )
+        FSStorage.getInstance().addFiles(self.result.paths)
 
         self.scanningFinished.emit()
 
@@ -77,9 +73,13 @@ class FileScanner:
     scanning_tasks: dict[UUID, FileScannerInstance] = dict()
 
     @classmethod
-    def startScanning(cls, options: FileScanningOptions) -> None:
+    def startScanning(
+        cls, options: FileScanningOptions,
+        callback: Callable[[FileScanningResult], None] | None = None
+    ) -> None:
         inst = FileScannerInstance(options)
         cls.scanning_tasks[inst.instance_id] = inst
+        inst.callback = callback
         inst.working_thread.started.connect(inst.start)
         inst.working_thread.finished.connect(lambda: cls.finalizeScanning(inst))
         inst.scanningFinished.connect(inst.working_thread.quit)
@@ -89,4 +89,10 @@ class FileScanner:
     @classmethod
     def finalizeScanning(cls, inst: FileScannerInstance) -> None:
         logger.info(f'finalizing scanning task {inst.instance_id}')
-        del cls.scanning_tasks[inst.instance_id]
+        instance = cls.scanning_tasks.pop(inst.instance_id, None)
+        if instance is None:
+            logger.warning(f'scanning task {inst.instance_id} not found')
+            return
+
+        if instance.callback is not None:
+            instance.callback(instance.result)

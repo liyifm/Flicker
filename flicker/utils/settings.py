@@ -2,11 +2,20 @@ from flicker.services.memory import DataSourceUnion
 
 from pydantic import BaseModel, Field
 from loguru import logger
-from typing import Optional, OrderedDict
+from typing import Optional, OrderedDict, Literal
 from pathlib import Path
 
 import sys
 import os
+
+
+SupportedProviderType = Literal
+
+
+class ModelProvider(BaseModel):
+    provider_name: str = ""
+    base_url: str = ""
+    api_key: str = ""
 
 
 class ModelRef(BaseModel):

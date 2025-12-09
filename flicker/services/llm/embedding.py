@@ -9,14 +9,11 @@ from typing import Optional
 
 class EmbeddingOptions(BaseModel):
     batch_size: int
-    dimension: int
+    dimension: Optional[int] = None
 
     @classmethod
     def default(cls) -> 'EmbeddingOptions':
-        return EmbeddingOptions(
-            batch_size=64,
-            dimension=256
-        )
+        return EmbeddingOptions(batch_size=128)
 
 
 class EmbeddingService:
@@ -32,11 +29,15 @@ class EmbeddingService:
         total_tokens = 0
 
         for i, payload in enumerate(batched(texts, options.batch_size)):
-            resp = client.embeddings.create(
-                model=model_ref.model_name,
-                input=payload,
-                dimensions=options.dimension
-            )
+            if options.dimension is not None:
+                resp = client.embeddings.create(
+                    model=model_ref.model_name,
+                    input=payload,
+                    dimensions=options.dimension
+                )
+            else:
+                resp = client.embeddings.create(model=model_ref.model_name, input=payload)
+
             total_tokens += resp.usage.total_tokens
             total_tps = total_tokens / (time() - start_time)
             logger.info(f"processed batch {i + 1} / {N} embeddings, total tokens {total_tokens}, tps {total_tps:.2f}")
