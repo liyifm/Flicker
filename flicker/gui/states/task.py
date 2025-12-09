@@ -55,10 +55,10 @@ class TaskManagerState(QObject):
         settings = Settings.loadDefault()
         task = TaskState(task_name=message, task_model=settings.default_model)
         task.appendUserMessage(UserMessage.create(message))
-        task.task_context.system_prompt = SystemMessage(
-            content=f"你是一个有用的助手，根据用户的画像，分析并回答他的问题，"
-                    f"用户的画像是：{settings.default_user.description}。"
-        )
+        # task.task_context.system_prompt = SystemMessage(
+        #     content=f"你是一个有用的助手，根据用户的画像，分析并回答他的问题，"
+        #             f"用户的画像是：{settings.default_user.description}。"
+        # )
         task.start()
 
         self.tasks.append(task)

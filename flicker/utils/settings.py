@@ -1,3 +1,5 @@
+from flicker.services.memory import DataSourceUnion
+
 from pydantic import BaseModel, Field
 from loguru import logger
 from typing import Optional, OrderedDict
@@ -20,7 +22,9 @@ class UserProfile(BaseModel):
 
 class Settings(BaseModel):
     default_model: ModelRef = Field(default_factory=ModelRef)
+    default_embed_model: ModelRef = Field(default_factory=ModelRef)
     default_user: UserProfile = Field(default_factory=UserProfile)
+    memory_data_sources: list[DataSourceUnion] = Field(default_factory=list)
 
     @staticmethod
     def getSettingsDirectory() -> Path:

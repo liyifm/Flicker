@@ -109,7 +109,7 @@ class ChatContextView(QScrollArea):
         self.content_layout.setContentsMargins(5, 5, 5, 5)
         self.setLayout(self.content_layout)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.content_layout.setSpacing(5)
+        self.content_layout.setSpacing(10)
 
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

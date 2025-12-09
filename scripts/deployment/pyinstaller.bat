@@ -30,6 +30,7 @@ pyinstaller ^
     --workpath "%BUILD_DIR%" ^
     --specpath "%OUTPUT_DIR%" ^
     --name "Flicker" ^
+    --icon %PROJECT_ROOT%\flicker\assets\icons\flicker.ico ^
     --noconfirm ^
     "%ENTRY_POINT%"
 

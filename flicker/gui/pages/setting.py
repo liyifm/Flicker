@@ -45,6 +45,7 @@ class SettingPage(FlickerPage):
         try:
             settings = Settings.model_validate_json(self.widget_editor.toPlainText())
             settings.saveAsDefault()
+            self.widget_editor.setPlainText(settings.model_dump_json(indent=4))
             self.widget_error.setText("")
             self.widget_error.hide()
         except Exception as ex:
