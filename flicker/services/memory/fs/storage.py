@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional
 from loguru import logger
+from pydantic import BaseModel
 from threading import current_thread
 
 import sqlite3
@@ -9,7 +10,9 @@ import sqlite3
 CREATE_FILE_INFO = """
 CREATE TABLE IF NOT EXISTS fileinfo (
     file_path TEXT PRIMARY KEY,
+    file_path_lower TEXT,
     file_name TEXT,
+    file_name_lower TEXT,
     created_time TIMESTAMP,
     modified_time TIMESTAMP,
     accessed_time TIMESTAMP
@@ -18,10 +21,12 @@ CREATE TABLE IF NOT EXISTS fileinfo (
 
 INSERT_FILE_INFO = """
 INSERT INTO fileinfo (
-    file_path, file_name,
+    file_path, file_path_lower,
+    file_name, file_name_lower,
     created_time, modified_time, accessed_time
 ) VALUES (
-    :file_path, :file_name,
+    :file_path, :file_path_lower,
+    :file_name, :file_name_lower,
     :created_time, :modified_time, :accessed_time
 ) ON CONFLICT(file_path) DO UPDATE SET
     file_name = :file_name,
@@ -32,12 +37,16 @@ INSERT INTO fileinfo (
 """
 
 
-class FSStorage:
+class FileInfoFilter(BaseModel):
+    keywords: list[str]
 
-    _instances: dict[int, 'FSStorage'] = dict()
+
+class FileSystemStorage:
+
+    _instances: dict[int, 'FileSystemStorage'] = dict()
 
     @classmethod
-    def getInstance(cls) -> 'FSStorage':
+    def getInstance(cls) -> 'FileSystemStorage':
         thread_id = current_thread().ident
         if thread_id is None:
             raise RuntimeError("the thread is not started yet")
@@ -47,7 +56,7 @@ class FSStorage:
 
         from flicker.utils.settings import Settings
         db_path = Settings.getSettingsDirectory() / "fsmemory.db"
-        instance = FSStorage(db_path)
+        instance = FileSystemStorage(db_path)
         if instance.db_list_tables() == []:
             instance.db_initialize()
 
@@ -62,7 +71,9 @@ class FSStorage:
         stat = path.stat()
         return {
             "file_path": str(path),
+            "file_path_lower": str(path).lower(),
             "file_name": path.name,
+            "file_name_lower": path.name.lower(),
             "created_time": int(stat.st_birthtime),
             "modified_time": int(stat.st_mtime),
             "accessed_time": int(stat.st_atime)
@@ -82,6 +93,17 @@ class FSStorage:
         except Exception as ex:
             logger.error(f'failed to batch insert: {ex}')
             self.__connection.rollback()
+
+    def findFiles(self, filter: FileInfoFilter) -> list[str]:
+        args: list = []
+        query = "SELECT file_path FROM fileinfo WHERE "
+        query += " OR ".join(["INSTR(file_name, ?)"] * len(filter.keywords))
+        args.extend(filter.keywords)
+        query += ";"
+        cursor = self.__connection.cursor()
+
+        rows = cursor.execute(query, args).fetchall()
+        return [row[0] for row in rows]
 
     def db_initialize(self) -> None:
         logger.info(f'initialize database @ {self.db_path}')

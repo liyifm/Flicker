@@ -1,4 +1,4 @@
-from flicker.services.memory.fs.storage import FSStorage
+from flicker.services.memory.fs.storage import FileSystemStorage
 
 from PySide6.QtCore import QThread, QObject, Signal
 from pydantic import BaseModel, Field
@@ -64,7 +64,7 @@ class FileScannerInstance(QObject):
 
         cost = time() - start
         logger.info(f'file scanning task takes {cost:.2f} seconds with {total_files} files')
-        FSStorage.getInstance().addFiles(self.result.paths)
+        FileSystemStorage.getInstance().addFiles(self.result.paths)
 
         self.scanningFinished.emit()
 

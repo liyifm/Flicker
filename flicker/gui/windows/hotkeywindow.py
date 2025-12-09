@@ -9,7 +9,9 @@ from flicker.utils.window import WindowUtils
 from flicker.services.proactive.intent_parser import IntentParsingResult
 from flicker.gui.widgets.input import AIChatInput
 from flicker.gui.widgets.proactive.intents import IntentListView
+from flicker.services.memory.fs.storage import FileSystemStorage, FileInfoFilter
 
+from loguru import logger
 from typing import Optional
 
 
@@ -43,6 +45,7 @@ class HotkeyWindow(QMainWindow):
 
         self.widget_intents = IntentListView(self)
         self.widget_input = AIChatInput()
+        self.widget_input.textChanged.connect(self.searchFiles)
 
         self.setupUILayout()
 
@@ -94,6 +97,11 @@ class HotkeyWindow(QMainWindow):
             self.close()
 
         return super().keyPressEvent(event)
+
+    def searchFiles(self) -> None:
+        keyword = self.widget_input.text()
+        result = FileSystemStorage.getInstance().findFiles(FileInfoFilter(keywords=[keyword]))
+        logger.debug(result)
 
     def setIntentParsingResult(self, result: Optional[IntentParsingResult] = None) -> None:
         self.widget_intents.updateIntentList([] if result is None else result.intents)
