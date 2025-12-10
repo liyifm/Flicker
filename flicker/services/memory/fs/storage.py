@@ -99,6 +99,7 @@ class FileSystemStorage:
         query = "SELECT file_path FROM fileinfo WHERE "
         query += " OR ".join(["INSTR(file_name, ?)"] * len(filter.keywords))
         args.extend(filter.keywords)
+        query += " ORDER BY modified_time DESC"
         query += ";"
         cursor = self.__connection.cursor()
 

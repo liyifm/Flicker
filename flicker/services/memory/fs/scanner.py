@@ -58,7 +58,6 @@ class FileScannerInstance(QObject):
                     continue
 
                 file_path = Path(current_directory) / filename
-                file_stat = file_path.stat()
                 total_files += 1
                 self.result.paths.append(file_path)
 

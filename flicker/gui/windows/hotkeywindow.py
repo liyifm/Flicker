@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QFrame, QVBoxLayout, QLabel,
+    QMainWindow, QWidget, QFrame, QVBoxLayout, QTabWidget,
     QGraphicsDropShadowEffect
 )
 from PySide6.QtCore import Qt, QTimer, QEvent
@@ -9,6 +9,7 @@ from flicker.utils.window import WindowUtils
 from flicker.services.proactive.intent_parser import IntentParsingResult
 from flicker.gui.widgets.input import AIChatInput
 from flicker.gui.widgets.proactive.intents import IntentListView
+from flicker.gui.widgets.memory.fs import FileListView
 from flicker.services.memory.fs.storage import FileSystemStorage, FileInfoFilter
 
 from loguru import logger
@@ -44,8 +45,10 @@ class HotkeyWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self.widget_intents = IntentListView(self)
+        self.widget_files = FileListView(self)
         self.widget_input = AIChatInput()
         self.widget_input.textChanged.connect(self.searchFiles)
+        self.widget_tabs = QTabWidget()
 
         self.setupUILayout()
 
@@ -65,8 +68,10 @@ class HotkeyWindow(QMainWindow):
         inner_layout.setContentsMargins(20, 20, 20, 20)
 
         inner_layout.addWidget(self.widget_input)
-        inner_layout.addWidget(self.widget_intents)
-        inner_layout.addStretch()
+        inner_layout.addWidget(self.widget_tabs, 1)
+
+        self.widget_tabs.addTab(self.widget_intents, "用户意图")
+        self.widget_tabs.addTab(self.widget_files, "文件查找")
 
         # 设置样式
         inner_widget.setStyleSheet("""
@@ -99,9 +104,14 @@ class HotkeyWindow(QMainWindow):
         return super().keyPressEvent(event)
 
     def searchFiles(self) -> None:
-        keyword = self.widget_input.text()
+        keyword = self.widget_input.text().strip()
+        if keyword == "":
+            return
+
         result = FileSystemStorage.getInstance().findFiles(FileInfoFilter(keywords=[keyword]))
-        logger.debug(result)
+        print(result[:10])
+        self.widget_files.setFilePaths(result[:20])
+        self.widget_tabs.setCurrentWidget(self.widget_files)
 
     def setIntentParsingResult(self, result: Optional[IntentParsingResult] = None) -> None:
         self.widget_intents.updateIntentList([] if result is None else result.intents)
