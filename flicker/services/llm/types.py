@@ -47,17 +47,20 @@ class UserMessage(BaseModel):
 
         return msg
 
-    def appendItem(self, item: Union[str, QPixmap]) -> None:
-        if isinstance(item, str):
-            if len(self.content) > 0 and isinstance(self.content[-1], TextPart):
-                self.content[-1].text += item
-            else:
-                self.content.append(TextPart(text=item))
-        elif isinstance(item, QPixmap):
-            if isinstance(self.content, str):
-                self.content = [TextPart(text=self.content)]
+    def appendItem(self, *items: Union[str, QPixmap]) -> 'UserMessage':
+        for item in items:
+            if isinstance(item, str):
+                if len(self.content) > 0 and isinstance(self.content[-1], TextPart):
+                    self.content[-1].text += item
+                else:
+                    self.content.append(TextPart(text=item))
+            elif isinstance(item, QPixmap):
+                if isinstance(self.content, str):
+                    self.content = [TextPart(text=self.content)]
 
-            self.content.append(ImagePart.create(item))
+                self.content.append(ImagePart.create(item))
+
+        return self
 
 
 class AssistantMessage(BaseModel):
@@ -72,6 +75,14 @@ class AssistantMessage(BaseModel):
                 self.appendImagePart(part)
             else:
                 raise NotImplementedError
+
+    def getPlainText(self) -> str:
+        text = ''
+        for part in self.content:
+            if isinstance(part, TextPart):
+                text += part.text
+
+        return text
 
     def appendText(self, text: str) -> None:
         self.appendTextPart(TextPart(text=text))

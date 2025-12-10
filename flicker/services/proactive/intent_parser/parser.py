@@ -4,7 +4,8 @@ from PySide6.QtGui import QPixmap, QImage
 
 from flicker.services.proactive.intent_parser.intent import IntentRegistry
 from flicker.utils.notification import NotificationManager
-from flicker.utils.image import ImageUtils
+from flicker.services.llm.completion import ChatCompletionService
+from flicker.services.llm.types import ChatContext, UserMessage, AssistantMessage
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from loguru import logger
@@ -64,13 +65,10 @@ class IntentParserInstance(QObject):
         self.screenshot = screenshot
 
     def parse(self) -> IntentParsingResult:
-        model_name = "google/gemini-2.5-flash-lite"
-        api_key = environ.get("OPENROUTER_API_KEY", "")
-        base_url = "https://openrouter.ai/api/v1"
+        from flicker.utils.settings import Settings
 
-        if api_key == "":
-            NotificationManager.send_error_message("无法进行意图解析", "没有配置OpenRouter的API Key，请前往设置页面进行配置")
-            raise RuntimeError("OpenRouter API Key is not configured")
+        setting = Settings.loadDefault()
+        model = setting.getModelInstance(setting.default_multimodal_model_alias)
 
         intents = ""
         for intent in IntentRegistry.getInstance().getIntents():
@@ -78,24 +76,14 @@ class IntentParserInstance(QObject):
             intents += f"  * 意图描述: {intent.description}\n"
             intents += f"  * 意图的输入参数Schema: " + json.dumps(intent.parameterSchema.model_json_schema(), ensure_ascii=False) + "\n"
 
-        client = OpenAI(api_key=api_key, base_url=base_url)
+        ctx = ChatContext()
+        ctx.appendMessage(UserMessage().appendItem(
+            INTENT_PARSING_PROMPT.format(intents=intents),
+            self.screenshot,
+        ))
 
-        image_url = ImageUtils.pixmapToBase64(self.screenshot, "webp", 80)
-
-        resp = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": INTENT_PARSING_PROMPT.format(intents=intents)},
-                        {"type": "image_url", "image_url": {"url": image_url}},
-                    ]
-                }
-            ]
-        )
-
-        content = str(resp.choices[0].message.content)
+        content = ChatCompletionService.syncComplete(model, ctx).getPlainText()
+        print(content)
         startPos = content.find('```json')
         if startPos == -1:
             raise ValueError("Failed to find JSON code block in the response")

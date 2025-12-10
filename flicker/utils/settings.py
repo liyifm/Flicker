@@ -39,6 +39,7 @@ class UserProfile(BaseModel):
 
 class Settings(BaseModel):
     default_model_alias: str = ""
+    default_multimodal_model_alias: str = ""
     default_embed_model_alias: str = ""
     default_user: UserProfile = Field(default_factory=UserProfile)
     memory_data_sources: list[DataSourceUnion] = Field(default_factory=list)

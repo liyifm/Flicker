@@ -1,6 +1,7 @@
 from PySide6.QtCore import QObject, QThread, Signal
 from openai import OpenAI
 from openai.types.chat import ChatCompletionChunk
+from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel
 
@@ -23,7 +24,7 @@ class StreamCompletionChunk(BaseModel):
     finish_reason: Optional[ChatFinishReason] = None
 
     @classmethod
-    def parseAssistantMessage(cls, message: ChoiceDelta) -> AssistantMessage:
+    def parseAssistantMessage(cls, message: ChoiceDelta | ChatCompletionMessage) -> AssistantMessage:
         parsed_message = AssistantMessage()
         if message.content is not None:
             parsed_message.appendText(message.content)
@@ -57,12 +58,14 @@ class ChatCompletionInstance(QObject):
     chunkReceived = Signal(StreamCompletionChunk)
     completionStopped = Signal()
 
-    def __init__(self, model: ModelInstance, ctx: ChatContext) -> None:
+    def __init__(self, model: ModelInstance, ctx: ChatContext, streaming: bool = True) -> None:
         super().__init__()
         self.instance_id = uuid4()
         self.model = model
         self.ctx = ctx
         self.worker_thread = QThread()
+        self.streaming = streaming
+        self.final_result: Optional[AssistantMessage] = None
         self.callback: Optional[StreamCompletionCallback] = None
 
     def start(self) -> None:
@@ -73,14 +76,22 @@ class ChatCompletionInstance(QObject):
             messages.insert(0, self.ctx.system_prompt.model_dump())
 
         try:
-            stream_response = client.chat.completions.create(
-                model=self.model.model_name,
-                messages=messages,  # type: ignore
-                stream=True
-            )
-            for chunk in stream_response:
-                # logger.info(chunk)
-                self.chunkReceived.emit(StreamCompletionChunk.fromOpenAIChunk(chunk))  # type: ignore
+            if self.streaming:
+                stream_response = client.chat.completions.create(
+                    model=self.model.model_name,
+                    messages=messages,  # type: ignore
+                    stream=True
+                )
+                for chunk in stream_response:
+                    # logger.info(chunk)
+                    self.chunkReceived.emit(StreamCompletionChunk.fromOpenAIChunk(chunk))  # type: ignore
+            else:
+                response = client.chat.completions.create(
+                    model=self.model.model_name,
+                    messages=messages,  # type: ignore
+                )
+                self.final_result = StreamCompletionChunk.parseAssistantMessage(response.choices[0].message)
+                print(self.final_result)
         except Exception as e:
             logger.error(f'chat completion failed: {e}')
             logger.info(traceback.format_exc())
@@ -90,6 +101,15 @@ class ChatCompletionInstance(QObject):
 
 class ChatCompletionService:
     instances: dict[UUID, ChatCompletionInstance] = dict()
+
+    @classmethod
+    def syncComplete(cls, model: ModelInstance, ctx: ChatContext) -> AssistantMessage:
+        instance = ChatCompletionInstance(model, ctx, streaming=False)
+        instance.start()
+        if instance.final_result is not None:
+            return instance.final_result
+        else:
+            raise RuntimeError("Failed to get completion result")
 
     @classmethod
     def streamComplete(cls, model: ModelInstance, ctx: ChatContext, callback: StreamCompletionCallback) -> None:
