@@ -1,4 +1,4 @@
-from flicker.utils.settings import ModelRef
+from flicker.utils.settings import ModelInstance
 from openai import OpenAI
 from loguru import logger
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class EmbeddingOptions(BaseModel):
 
 class EmbeddingService:
     @classmethod
-    def startEmbedding(cls, model_ref: ModelRef, texts: list[str], options: Optional[EmbeddingOptions] = None) -> None:
+    def startEmbedding(cls, model_ref: ModelInstance, texts: list[str], options: Optional[EmbeddingOptions] = None) -> None:
         logger.info(f'start embedding for {len(texts)} text chunks')
         if options is None:
             options = EmbeddingOptions.default()

@@ -51,9 +51,12 @@ class FlickerApp(QApplication):
         self.setQuitOnLastWindowClosed(False)
 
         FlickerApp._instance = self
-        default_settings = Settings.loadDefault()
-        for datasource in default_settings.memory_data_sources:
-            datasource.startUpdate()
+        try:
+            default_settings = Settings.loadDefault()
+            for datasource in default_settings.memory_data_sources:
+                datasource.startUpdate()
+        except Exception as ex:
+            logger.error(f'failed to load default settings {ex}')
 
     @classmethod
     def getInstance(cls) -> 'FlickerApp':

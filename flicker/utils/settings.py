@@ -12,6 +12,14 @@ import os
 SupportedProviderType = Literal
 
 
+class ModelInstance(BaseModel):
+    """ Model instance is not a configuration item, but a internal
+    item returned when finding models """
+    base_url: str
+    model_name: str
+    api_key: str
+
+
 class ModelProvider(BaseModel):
     provider_name: str = ""
     base_url: str = ""
@@ -19,9 +27,9 @@ class ModelProvider(BaseModel):
 
 
 class ModelRef(BaseModel):
+    alias: str = ""
+    provider_name: str = "openrouter"
     model_name: str = "Pro/deepseek-ai/DeepSeek-V3.2"
-    base_url: str = "https://api.siliconflow.cn/v1"
-    api_key: str = ""
 
 
 class UserProfile(BaseModel):
@@ -30,10 +38,31 @@ class UserProfile(BaseModel):
 
 
 class Settings(BaseModel):
-    default_model: ModelRef = Field(default_factory=ModelRef)
-    default_embed_model: ModelRef = Field(default_factory=ModelRef)
+    default_model_alias: str = ""
+    default_embed_model_alias: str = ""
     default_user: UserProfile = Field(default_factory=UserProfile)
     memory_data_sources: list[DataSourceUnion] = Field(default_factory=list)
+    model_providers: list[ModelProvider] = Field(default_factory=list)
+    model_refs: list[ModelRef] = Field(default_factory=list)
+
+    def getProvider(self, provider_name: str) -> ModelProvider:
+        for provider in self.model_providers:
+            if provider.provider_name == provider_name:
+                return provider
+
+        raise KeyError(f'cannot find provider {provider_name}')
+
+    def getModelInstance(self, alias: str) -> ModelInstance:
+        for ref in self.model_refs:
+            if ref.alias == alias:
+                provider = self.getProvider(ref.provider_name)
+                return ModelInstance(
+                    base_url=provider.base_url,
+                    api_key=provider.api_key,
+                    model_name=ref.model_name
+                )
+
+        raise KeyError(f'cannot find model alias {alias}')
 
     @staticmethod
     def getSettingsDirectory() -> Path:

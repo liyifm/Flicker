@@ -4,7 +4,7 @@ from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel
 
-from flicker.utils.settings import ModelRef
+from flicker.utils.settings import ModelInstance
 from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart, ImagePart
 
 from loguru import logger
@@ -57,7 +57,7 @@ class ChatCompletionInstance(QObject):
     chunkReceived = Signal(StreamCompletionChunk)
     completionStopped = Signal()
 
-    def __init__(self, model: ModelRef, ctx: ChatContext) -> None:
+    def __init__(self, model: ModelInstance, ctx: ChatContext) -> None:
         super().__init__()
         self.instance_id = uuid4()
         self.model = model
@@ -92,7 +92,7 @@ class ChatCompletionService:
     instances: dict[UUID, ChatCompletionInstance] = dict()
 
     @classmethod
-    def streamComplete(cls, model: ModelRef, ctx: ChatContext, callback: StreamCompletionCallback) -> None:
+    def streamComplete(cls, model: ModelInstance, ctx: ChatContext, callback: StreamCompletionCallback) -> None:
         instance = ChatCompletionInstance(model, ctx)
         cls.instances[instance.instance_id] = instance
 
