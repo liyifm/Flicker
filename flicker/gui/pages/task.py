@@ -13,8 +13,8 @@ from loguru import logger
 
 USER_MESSAGE_STYLE = """
 QFrame {
-    background-color: #2BA245;
-    border-radius: 15px;
+    background-color: #F46537;
+    border-radius: 18px;
     color: white;
 }
 """
@@ -22,7 +22,7 @@ QFrame {
 ASSISTANT_MESSAGE_STYLE = """
 QFrame {
     background-color: #FEFEFE;
-    border-radius: 15px;
+    border-radius: 18px;
     color: black;
 }
 """
@@ -166,6 +166,7 @@ class TaskPage(FlickerPage):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.widget_context, 1)
         main_layout.addWidget(self.widget_input)
+        main_layout.setContentsMargins(20, 20, 20, 20)
         self.setLayout(main_layout)
 
     def __setUpSignals(self) -> None:

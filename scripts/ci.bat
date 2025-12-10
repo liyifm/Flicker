@@ -12,7 +12,7 @@ echo Running pycodestyle ...
 python -m pycodestyle ^
 	--ignore=E501 ^
 	--show-source --statistics ^
-	--exclude=.venv,flicker/assets/resources_rc.py ^
+	--exclude=.venv,.venv_x64,flicker/assets/resources_rc.py ^
 	.
 
 if %ERRORLEVEL% NEQ 0 (
@@ -20,7 +20,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Running mypy type checks ...
-python -m mypy --exclude "\\.venv|flicker[\\/]+assets[\\/]+resources_rc\\.py" .
+python -m mypy --exclude "\\.venv|.venv_x64|flicker[\\/]+assets[\\/]+resources_rc\\.py" .
 if %ERRORLEVEL% NEQ 0 (
 	set "ERR=1"
 )

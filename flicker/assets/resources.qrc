@@ -2,5 +2,6 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/flicker.png</file>
+        <file>icons/bulb.png</file>
     </qresource>
 </RCC>

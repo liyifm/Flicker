@@ -11,7 +11,7 @@ echo "Running pycodestyle ..."
 python -m pycodestyle \
 	--ignore=E501 \
 	--show-source --statistics \
-	--exclude=.venv,flicker/assets/resources_rc.py \
+	--exclude=.venv,.venv_x64,flicker/assets/resources_rc.py \
 	.
 
 if [ $? -ne 0 ]; then
@@ -19,7 +19,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Running mypy type checks ..."
-python -m mypy --exclude "\.venv|flicker/assets/resources_rc\.py" .
+python -m mypy --exclude "\.venv|.venv_x64|flicker/assets/resources_rc\.py" .
 if [ $? -ne 0 ]; then
 	ERR=1
 fi

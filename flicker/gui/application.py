@@ -43,7 +43,6 @@ class FlickerApp(QApplication):
         self.setApplicationName("Flicker")
         self.setApplicationVersion("0.0.1")
         self.setWindowIcon(flicker_icon)
-        self.setFont(QFont("Microsoft YaHei", 10))
         # self.setStyle(QStyleFactory.create("Fusion"))
 
         self.setUpTrayIcon()

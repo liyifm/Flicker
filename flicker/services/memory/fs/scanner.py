@@ -34,9 +34,7 @@ class FileScannerInstance(QObject):
         self.result = FileScanningResult()
         self.callback: Callable[[FileScanningResult], None] | None = None
 
-    def start(self) -> None:
-        logger.info(f'start file scanning: {self.options.root_directory}')
-        start = time()
+    def startStandardScanning(self) -> None:
         total_files = 0
 
         for current_directory, sub_directories, filenames in walk(self.options.root_directory):
@@ -61,8 +59,13 @@ class FileScannerInstance(QObject):
                 total_files += 1
                 self.result.paths.append(file_path)
 
+    def start(self) -> None:
+        logger.info(f'start file scanning: {self.options.root_directory}')
+        start = time()
+        self.startStandardScanning()
+
         cost = time() - start
-        logger.info(f'file scanning task takes {cost:.2f} seconds with {total_files} files')
+        logger.info(f'file scanning task takes {cost:.2f} seconds with {len(self.result.paths)} files')
         FileSystemStorage.getInstance().addFiles(self.result.paths)
 
         self.scanningFinished.emit()

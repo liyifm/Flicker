@@ -20,6 +20,12 @@ class HotkeyWindow(QMainWindow):
 
     _instance: Optional['HotkeyWindow'] = None
 
+    STYLE = """
+    QTabWidget::pane {
+        border: none;
+    }
+    """
+
     @classmethod
     def popup(cls) -> None:
         if cls._instance is None:
@@ -49,6 +55,7 @@ class HotkeyWindow(QMainWindow):
         self.widget_input = AIChatInput()
         self.widget_input.textChanged.connect(self.searchFiles)
         self.widget_tabs = QTabWidget()
+        self.setStyleSheet(self.STYLE)
 
         self.setupUILayout()
 
@@ -109,7 +116,6 @@ class HotkeyWindow(QMainWindow):
             return
 
         result = FileSystemStorage.getInstance().findFiles(FileInfoFilter(keywords=[keyword]))
-        print(result[:10])
         self.widget_files.setFilePaths(result[:20])
         self.widget_tabs.setCurrentWidget(self.widget_files)
 

@@ -11,8 +11,8 @@ class WindowUtils:
         """ Bring a window to front """
         import ctypes
         user32 = ctypes.windll.user32
-        # user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_TOPMOST
-        user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_NOTOPMOST
+        user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_TOPMOST
+        # user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_NOTOPMOST
         user32.SetForegroundWindow(hwnd)
         user32.BringWindowToTop(hwnd)
         user32.SetFocus(hwnd)

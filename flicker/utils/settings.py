@@ -81,6 +81,9 @@ class Settings(BaseModel):
         logger.info(f"getSettingsDirectory: {settings_dir}")
         return settings_dir
 
+    def getDefaultEmbeddingModel(self) -> ModelInstance:
+        return self.getModelInstance(self.default_embed_model_alias)
+
     @classmethod
     def loadDefault(cls) -> 'Settings':
         from flicker.gui.application import FlickerApp
