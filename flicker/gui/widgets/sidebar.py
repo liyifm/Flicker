@@ -14,11 +14,10 @@ class Sidebar(QWidget):
         self.setupUILayout()
         self.setMaximumWidth(250)
         self.setStyleSheet(SIDEBAR_STYLE)
-        self.setContentsMargins(0, 0, 0, 0)
 
     def setupUILayout(self) -> None:
         layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)
         label = QLabel("侧边栏内容")
         layout.addWidget(label)
         self.setLayout(layout)

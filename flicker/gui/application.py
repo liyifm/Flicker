@@ -52,7 +52,11 @@ class FlickerApp(QApplication):
         FlickerApp._instance = self
         try:
             default_settings = Settings.loadDefault()
-            self.setFont(QFont("Microsoft YaHei", default_settings.gui_config.font_size))
+            font = QFont("Microsoft YaHei", default_settings.gui_config.font_size)
+            font.setHintingPreference(QFont.PreferFullHinting)
+            font.setStyleStrategy(QFont.PreferAntialias)
+            self.setFont(font)
+
             for datasource in default_settings.memory_data_sources:
                 datasource.startUpdate()
         except Exception as ex:

@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QFrame, QScrollArea, QWidget, QSizePolicy, QGraphicsDropShadowEffect, QLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize, QTimer
 from PySide6.QtGui import QResizeEvent, QColor
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from flicker.utils.image import ImageUtils
 from flicker.gui.pages.base import FlickerPage
@@ -9,6 +10,8 @@ from flicker.gui.widgets.input import AIChatInput
 from flicker.services.llm.types import ChatContext, UserMessage, AssistantMessage, ChatMessageUnion, TextPart, ImagePart
 
 from loguru import logger
+
+import mistune
 
 
 USER_MESSAGE_STYLE = """
@@ -27,30 +30,77 @@ QFrame {
 }
 """
 
+HTML_TEMPLATE = """
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <style>
+    body {{
+      background-color: transparent;
+      height: fit-content;
+    }}
+  </style>
+  <body>{body}</body>
+</html>
+"""
 
-class TextPartView(QTextBrowser):
+
+class TextPartView(QWebEngineView):
 
     def __init__(self, text_part: TextPart) -> None:
         super().__init__()
         self.text_part = text_part
-        self.setLineWrapMode(QTextBrowser.LineWrapMode.WidgetWidth)
+        self.page().loadFinished.connect(self.updateHeight)
+        self.setFixedHeight(0)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
 
     def reload(self) -> None:
-        self.setMarkdown(self.text_part.text)
-        self.adjustHeight()
+        html = HTML_TEMPLATE.format(body=mistune.html(self.text_part.text))
+        page = self.page()
+        page.setBackgroundColor(Qt.GlobalColor.transparent)
+        page.setHtml(html)
 
-    def adjustHeight(self) -> None:
-        document_height = self.document().size().height()
-        margins = self.contentsMargins()
-        self.setFixedHeight(int(document_height) + margins.top() + margins.bottom() + 2)
-
-    def resizeEvent(self, event: QResizeEvent) -> None:
+    def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.adjustHeight()
+        QTimer.singleShot(50, self.updateHeight)
 
-    def wheelEvent(self, event):
-        super().wheelEvent(event)
-        self.adjustHeight()
+    def updateHeight(self) -> None:
+        js_code = """
+        (function() {
+            // 移除滚动条
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+
+            // 获取内容的实际大小
+            var content = document.body;
+            var rect = content.getBoundingClientRect();
+
+            var height = Math.max(
+                content.scrollHeight,
+                content.offsetHeight
+            );
+
+            return Math.ceil(height);
+        })();
+        """
+
+        self.page().runJavaScript(js_code, self.setHeight)
+
+    def setHeight(self, height: int) -> None:
+        current_height = self.height()
+        if current_height - 5 <= height <= current_height + 5:  # 5px tolerance
+            return
+
+        self.setFixedHeight(height + 5)
+
+        parent = self.parentWidget()
+        if parent:
+            QTimer.singleShot(0, parent.adjustSize)
+
+    def sizeHint(self):
+        return QSize(self.width(), self.height())
 
 
 class ImagePartView(QLabel):
@@ -66,10 +116,11 @@ class ChatMessageView(QFrame):
         super().__init__(parent)
         self.message = message
         self.main_layout = QVBoxLayout()
+        self.main_layout.setContentsMargins(8, 3, 8, 3)
         self.setLayout(self.main_layout)
         self.widget_parts: list[TextPartView | ImagePartView] = []
 
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
 
         if isinstance(message, UserMessage):
             self.setStyleSheet(USER_MESSAGE_STYLE)
@@ -99,17 +150,20 @@ class ChatMessageView(QFrame):
                 else:
                     raise NotImplementedError
 
-        if len(self.widget_parts) > 0 and \
-                isinstance(self.widget_parts[-1], TextPartView):
+        if len(self.widget_parts) > 0 and isinstance(self.widget_parts[-1], TextPartView):
+            # only reload the last part if it is a text part
+            # other parts do not involve streaming hence has no need to reload
             self.widget_parts[-1].reload()
 
-        self.adjustHeight()
+    def adjustSize(self):
+        super().adjustSize()
+        self.setFixedHeight(self.main_layout.sizeHint().height() + 5)
+        parent = self.parentWidget()
+        if parent is not None:
+            QTimer.singleShot(0, parent.adjustSize)
 
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self.adjustHeight()
-
-    def adjustHeight(self) -> None:
-        self.setFixedHeight(self.main_layout.sizeHint().height() + 20)
+    def sizeHint(self):
+        return self.main_layout.sizeHint()
 
 
 class ChatContextView(QScrollArea):
