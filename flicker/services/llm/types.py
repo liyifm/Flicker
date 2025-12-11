@@ -103,9 +103,24 @@ ChatMessageUnion = Annotated[
 ]
 
 
+class Usage(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cost: float = 0
+
+    def __iadd__(self, other: 'Usage') -> 'Usage':
+        self.prompt_tokens += other.prompt_tokens
+        self.completion_tokens += other.completion_tokens
+        self.total_tokens += other.total_tokens
+        self.cost += other.cost
+        return self
+
+
 class ChatContext(BaseModel):
     system_prompt: Optional[SystemMessage] = None
     messages: list[ChatMessageUnion] = Field(default_factory=list)
+    usage: Usage = Field(default_factory=Usage)
 
     def appendMessage(self, msg: ChatMessageUnion) -> None:
         self.messages.append(msg)

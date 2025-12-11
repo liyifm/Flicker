@@ -37,11 +37,16 @@ class UserProfile(BaseModel):
     description: str = "一个普通人"
 
 
+class GUIConfig(BaseModel):
+    font_size: int = 12
+
+
 class Settings(BaseModel):
     default_model_alias: str = ""
     default_multimodal_model_alias: str = ""
     default_embed_model_alias: str = ""
     default_user: UserProfile = Field(default_factory=UserProfile)
+    gui_config: GUIConfig = Field(default_factory=GUIConfig)
     memory_data_sources: list[DataSourceUnion] = Field(default_factory=list)
     model_providers: list[ModelProvider] = Field(default_factory=list)
     model_refs: list[ModelRef] = Field(default_factory=list)

@@ -1,15 +1,15 @@
 from PySide6.QtCore import QObject, QThread, Signal
 from openai import OpenAI
-from openai.types.chat import ChatCompletionChunk
-from openai.types.chat import ChatCompletionMessage
+from openai.types.completion_usage import CompletionUsage
+from openai.types.chat import ChatCompletionMessage, ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from pydantic import BaseModel
 
 from flicker.utils.settings import ModelInstance
-from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart, ImagePart
+from flicker.services.llm.types import ChatContext, AssistantMessage, TextPart, ImagePart, Usage
 
 from loguru import logger
-from typing import Optional, Callable, Literal
+from typing import Optional, Callable, Literal, Iterable, cast
 from uuid import UUID, uuid4
 
 import os
@@ -68,6 +68,15 @@ class ChatCompletionInstance(QObject):
         self.final_result: Optional[AssistantMessage] = None
         self.callback: Optional[StreamCompletionCallback] = None
 
+    @staticmethod
+    def parseUsage(usage: CompletionUsage) -> Usage:
+        return Usage(
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            total_tokens=usage.total_tokens,
+            cost=getattr(usage, 'cost', 0.0)  # not all apis return cost information
+        )
+
     def start(self) -> None:
         logger.info(f"completion instance {self.instance_id} started")
         client = OpenAI(api_key=self.model.api_key, base_url=self.model.base_url)
@@ -77,25 +86,27 @@ class ChatCompletionInstance(QObject):
 
         try:
             if self.streaming:
-                stream_response = client.chat.completions.create(
+                stream_response: Iterable[ChatCompletionChunk] = client.chat.completions.create(
                     model=self.model.model_name,
                     messages=messages,  # type: ignore
                     stream=True
                 )
                 for chunk in stream_response:
-                    # logger.info(chunk)
-                    self.chunkReceived.emit(StreamCompletionChunk.fromOpenAIChunk(chunk))  # type: ignore
+                    chunk = cast(ChatCompletionChunk, chunk)
+                    self.chunkReceived.emit(StreamCompletionChunk.fromOpenAIChunk(chunk))
+                    if chunk.usage is not None:
+                        self.ctx.usage += ChatCompletionInstance.parseUsage(chunk.usage)
             else:
                 response = client.chat.completions.create(
                     model=self.model.model_name,
                     messages=messages,  # type: ignore
                 )
                 self.final_result = StreamCompletionChunk.parseAssistantMessage(response.choices[0].message)
-                print(self.final_result)
         except Exception as e:
             logger.error(f'chat completion failed: {e}')
             logger.info(traceback.format_exc())
 
+        logger.info(f"completion cost: {self.ctx.usage}")
         self.completionStopped.emit()
 
 

@@ -104,9 +104,9 @@ class MainWindow(QMainWindow):
         self.widget_sidebar = Sidebar()
 
         self.__setUpLayout()
+        self.openHomePage()
         self.__setUpSignals()
 
-        self.openHomePage()
         MainWindow._instance = self
 
     def __setUpLayout(self):
@@ -121,6 +121,8 @@ class MainWindow(QMainWindow):
     def __setUpSignals(self):
         globalState = GlobalState.getInstance()
         globalState.task_manager_state.taskCreated.connect(self.openTaskPage)
+        for task_state in globalState.task_manager_state.tasks:
+            self.openTaskPage(task_state)
 
     def openPage(self, page_id: str, page_generator: Callable[[], FlickerPage]) -> None:
         for i in range(self.widget_tabs.count()):

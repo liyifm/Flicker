@@ -1,6 +1,7 @@
 from flicker.gui.states.task import TaskState, TaskManagerState
 from PySide6.QtCore import QObject
 from typing import ClassVar, Optional
+from loguru import logger
 
 
 class GlobalState(QObject):
@@ -18,7 +19,14 @@ class GlobalState(QObject):
 
     def __init__(self):
         super().__init__()
-        self.task_manager_state = TaskManagerState()
+        try:
+            self.task_manager_state = TaskManagerState.load()
+        except Exception as ex:
+            logger.warning(f"failed to load task manager state: {ex}")
+            self.task_manager_state = TaskManagerState()
 
     def submitUserMessage(self, message: str) -> None:
         self.task_manager_state.submitUserMessage(message)
+
+    def save(self) -> None:
+        self.task_manager_state.save()
